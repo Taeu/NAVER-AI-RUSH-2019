@@ -1,55 +1,17 @@
 import sys
 sys.path.append('..')
-import torch
 import torch.nn as nn
-import torchvision.models as models
-
 from octconv import *
 
 
-class Baseline(nn.Module):
-    def __init__(self, hidden_size, out_size):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv2d(in_channels=3, out_channels=hidden_size, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(hidden_size),
-            nn.Conv2d(hidden_size, hidden_size, 3, 2, 1),
-            nn.ReLU(True),
-            nn.BatchNorm2d(hidden_size),
-            nn.Conv2d(hidden_size, hidden_size, 3, 2, 1),
-            nn.ReLU(True),
-            nn.BatchNorm2d(hidden_size),
-            nn.Conv2d(hidden_size, hidden_size, 3, 2, 1),
-            nn.ReLU(True),
-            nn.BatchNorm2d(hidden_size),
-            nn.Conv2d(hidden_size, hidden_size, 3, 2, 1),
-            nn.ReLU(True),
-            nn.BatchNorm2d(hidden_size),
-            nn.Conv2d(hidden_size, out_size, 4, 1),
-        )
-
-    def forward(self, image):
-        return self.net(image).squeeze(-1).squeeze(-1)
-
-
-class Resnet(nn.Module):
-    def __init__(self, out_size):
-        super().__init__()
-        model = models.resnet18(pretrained=True)
-        model = list(model.children())[:-1]
-        model.append(nn.Conv2d(512, out_size, 1))
-        self.net = nn.Sequential(*model)
-
-    def forward(self, image):
-        return self.net(image).squeeze(-1).squeeze(-1)
+__all__ = ['OctResNet', 'oct_resnet26', 'oct_resnet50', 'oct_resnet101', 'oct_resnet152', 'oct_resnet200']
 
 
 class Bottleneck(nn.Module):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
-                    base_width=64, alpha_in=0.5, alpha_out=0.5, norm_layer=None, output=False):
+                 base_width=64, alpha_in=0.5, alpha_out=0.5, norm_layer=None, output=False):
         super(Bottleneck, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -57,9 +19,9 @@ class Bottleneck(nn.Module):
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.conv1 = Conv_BN_ACT(inplanes, width, kernel_size=1, alpha_in=alpha_in, alpha_out=alpha_out, norm_layer=norm_layer)
         self.conv2 = Conv_BN_ACT(width, width, kernel_size=3, stride=stride, padding=1, groups=groups, norm_layer=norm_layer,
-                                    alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
+                                 alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
         self.conv3 = Conv_BN(width, planes * self.expansion, kernel_size=1, norm_layer=norm_layer,
-                                alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
+                             alpha_in=0 if output else 0.5, alpha_out=0 if output else 0.5)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
@@ -90,7 +52,7 @@ class Bottleneck(nn.Module):
 class OctResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=1000, zero_init_residual=False,
-                    groups=1, width_per_group=64, norm_layer=None):
+                 groups=1, width_per_group=64, norm_layer=None):
         super(OctResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -99,7 +61,7 @@ class OctResNet(nn.Module):
         self.groups = groups
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
-                                bias=False)
+                               bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -162,3 +124,53 @@ class OctResNet(nn.Module):
         x = self.fc(x)
 
         return x
+
+
+def oct_resnet26(pretrained=False, **kwargs):
+    """Constructs a Octave ResNet-26 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = OctResNet(Bottleneck, [2, 2, 2, 2], **kwargs)
+    return model
+
+
+def oct_resnet50(pretrained=False, **kwargs):
+    """Constructs a Octave ResNet-50 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = OctResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
+    return model
+
+
+def oct_resnet101(pretrained=False, **kwargs):
+    """Constructs a Octave ResNet-101 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = OctResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
+    return model
+
+
+def oct_resnet152(pretrained=False, **kwargs):
+    """Constructs a Octave ResNet-152 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = OctResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
+    return model
+
+
+def oct_resnet200(pretrained=False, **kwargs):
+    """Constructs a Octave ResNet-200 model.
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = OctResNet(Bottleneck, [3, 24, 36, 3], **kwargs)
+    return model

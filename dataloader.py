@@ -22,7 +22,13 @@ def train_dataloader(input_size=128,
         
     dataloader = DataLoader(
         AIRushDataset(image_dir, train_meta_data, label_path=train_label_path, 
-                      transform=transforms.Compose([transforms.Resize((input_size, input_size)), transforms.ToTensor()])),
+                      transform=transforms.Compose(
+                          [transforms.Resize((input_size, input_size)),
+                           # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                        #    transforms.RandomCrop([224, 224]),
+                           transforms.RandomHorizontalFlip(),
+                           transforms.ToTensor()])
+                     ),
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
