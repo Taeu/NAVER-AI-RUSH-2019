@@ -1,0 +1,6 @@
+torch
+pickle-mixin
+tqdm
+torchvision
+pandas
+torchsummary
