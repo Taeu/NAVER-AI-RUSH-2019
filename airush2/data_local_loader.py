@@ -15,7 +15,7 @@ from utils import default_loader
 
 if not nsml.IS_ON_NSML:
     # if you want to run it on your local machine, then put your path here
-    DATASET_PATH = '/home/kwpark_mk2/airush2_temp'
+    DATASET_PATH = '/temp'
     print(DATASET_PATH)
     DATASET_NAME = 'airush2_temp'
 else:

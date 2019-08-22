@@ -63,3 +63,57 @@ nsml submit nsmlteam/airush2/[session number] [checkpoint name]
 ```
 nsml dataset board airush2
 ```
+
+
+
+## Problem2 : click-through rate (CTR) prediction
+
+### 1. Overview
+
+[A website](https://news.line.me/about/) shows a news headline and thumbnail in a banner at the top of the page to visitors, who will either click on the headline to read the article or take no action. 
+Using the following information, predict whether or not a user will click to read the article: the user’s age and gender, the article’s title and thumbnail image, time of day the headline and thumbnail are displayed, and articles that the user has read in the past.
+
+### 2. Data
+
+#### 1) File descriptions
+
+- train.tsv - training set
+- test.tsv - test set
+- article.tsv - article data 
+- images - directory that stores thumbnails of articles Format: images/{article_id}.jpg
+
+#### 2) Data fields
+
+- train.tsv
+  - label - 0 or 1 (1 when the article is clicked; 0 otherwise)
+  - article_id - ID of the article shown to the user
+  - hh - time of day the headline and thumbnail are displayed (00-23)
+  - gender - the user’s gender
+  - age_range - the user’s age range (five-year age groups)
+  - read_article_ids - IDs of articles the user has read in the past (comma-delimited; least recent first) 
+- test.tsv
+  - article_id - same as above 
+  - hh - same as above
+  - gender - same as above
+  - age_range - same as above
+  - read_article_ids - same as above
+- article.tsv
+  - article_id - article ID
+  - category_id - category of the article
+  - title - title of the article 
+
+### 3. Evaluation
+
+#### Metric
+
+Submitted data will be evaluated based on normalized entropy comparing the predicted probability and observed clicks.
+
+#### Submission File Format
+
+Insert the predicted probability of clicks (pCTR) in the beginning of each line of test.tsv. (Refer below for an example.)
+
+```pctr    article_id  hh   gender  age_range   read_article_ids
+0.2 a1c0e8271b5d    15  f   35-39   333467aea618,ec6d9eae39d2
+0.8 ed173d87cf27    13  m   50-     9e9540b512ea,805a8230527b,ecac87bfaada
+0.1 358557698b7c    14  m   20-24   7780160287c7,52e0dabc6dd6,6e44ba90bbeb,17a229a8cab6```
+```

@@ -17,6 +17,7 @@ from utils import get_transforms
 from utils import default_loader
 
 from tqdm import tqdm
+from gensim.models import Word2Vec
 
 if not nsml.IS_ON_NSML:
     # if you want to run it on your local machine, then put your path here
@@ -45,13 +46,15 @@ label = pd.read_csv(label_data_path,
                     sep='\t')
 
 
-with open(os.path.join(DATASET_PATH, 'train', 'train_data', 'train_image_features.pkl'), 'rb') as handle:
-    image_feature_dict = pickle.load(handle)
+item['read_article_ids'] = item['read_article_ids'].fillna(value='')
+article_ids = item['read_article_ids']
 
-article_ids = item['article_id'].tolist()[:100]
+article_list = [article.split(',') for article in article_ids if article]
 
-for article_id in article_ids[:50]:
-    print(article_id)
-    for elm in image_feature_dict[article_id]:
-        print(elm)
-    print('='*50)
+print('Start Item2Vec')
+model = Word2Vec(article_list, min_count=5, window=10, size=128, sg=1, negative=5, workers=6, iter=50)
+print('End Item2Vec')
+
+print('save item2vec')
+model.save('/model/item2vec.model')
+print('end item2vec')
