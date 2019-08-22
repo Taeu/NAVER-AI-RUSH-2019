@@ -23,6 +23,7 @@ else:
 
     print('DATASET_PATH: ', DATASET_PATH)
 
+arch = 'xDeepFM'
 
 class AIRUSH2dataset(Dataset):
     def __init__(self,
@@ -135,6 +136,7 @@ class AIRUSH2dataset(Dataset):
             image = self.transform['train'](image)
 
         # Additional info for feeding FC layer
+        
         flat_features = []
         if self.args['use_sex']:
             sex = self.sex[gender]
@@ -192,6 +194,8 @@ def get_data_loader(root, phase, batch_size=16, verbose=True):
             mode='train'
         )
         dataset_sizes = len(image_datasets)
+        print(dataset_sizes)
+
 
         dataloaders = torch.utils.data.DataLoader(image_datasets,
                                                   batch_size=batch_size,
