@@ -47,8 +47,7 @@ fixlen_feature_names_global=[]
 # bind
 def bind_nsml(model, optimizer, task):
     def save(dir_name, *args, **kwargs):
-
-        
+    
         os.makedirs(dir_name, exist_ok=True)
         model.save_weights(os.path.join(dir_name, 'model'))
         print('model saved!')
@@ -116,12 +115,12 @@ def data_generator(df, batch_size = 2048):
             yield train_model_input, y_batch
 
 def scheduler(epoch):
-    if epoch < 200:
+    if epoch < 15:
         return 0.001
-    elif epoch < 400 :
-        return 0.0005
-    elif epoch < 700 :
+    elif epoch < 30 :
         return 0.0001
+    elif epoch < 45 :
+        return 0.00001
     
 
 class CustomModelCheckpoint(tf.keras.callbacks.Callback):
@@ -198,7 +197,7 @@ def main(args):
         print(fixlen_feature_names)
         global fixlen_feature_names_global
         fixlen_feature_names_global = fixlen_feature_names
-        model = xDeepFM(linear_feature_columns, dnn_feature_columns, task= 'binary')
+        model = xDeepFM(linear_feature_columns, dnn_feature_columns, task= 'regression')
         print('---model defined---')
         # 만들었던 파일들 저장하는 것도 하나 짜기, 매번 돌릴 수 없으니까
         print(time.time() - s ,'seconds')
@@ -211,12 +210,12 @@ def main(args):
     item_neg = item[item['label'] == 0]
     
 
-    dn_1 = item_neg.sample(n=2*len(item_pos), random_state=42)
+    dn_1 = item_neg.sample(n=3*len(item_pos), random_state=42)
     dn_1.reset_index()
     
     data_1 = pd.concat([dn_1,item_pos]).sample(frac=1, random_state=42).reset_index()
    
-
+    
     
     data_1_article_idxs = data_1['article_id'].tolist()
     li = []
@@ -251,7 +250,7 @@ def main(args):
         save_cbk = CustomModelCheckpoint()
 
         history = model.fit_generator(train_generator,
-                     epochs=1000, verbose=2, workers = 8, steps_per_epoch=np.ceil(len(data_1)/2048), callbacks = [lr_scheduler,save_cbk])
+                     epochs=100, verbose=2, workers = 8, steps_per_epoch=np.ceil(len(data_1)/2048), callbacks = [lr_scheduler,save_cbk])
         print('again')
         
 

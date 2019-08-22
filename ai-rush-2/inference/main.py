@@ -23,6 +23,7 @@ from evaluation import evaluation_metrics
 import nsml
 import keras
 import math
+    
 
 from multiprocessing import Pool
 import time
@@ -35,6 +36,8 @@ if not nsml.IS_ON_NSML:
     print('use local gpu...!')
     use_nsml = False
 else:
+    from nsml import DATASET_PATH, DATASET_NAME, NSML_NFS_OUTPUT, SESSION_NAME
+    
     DATASET_PATH = os.path.join(nsml.DATASET_PATH)
     print('start using nsml...!')
     print('DATASET_PATH: ', DATASET_PATH)
@@ -45,7 +48,9 @@ fixlen_feature_names_global=[]
 
 
 # bind
-def bind_nsml(model):
+
+
+def bind_nsml(model,optimizer, task):
     def save(dir_name, *args, **kwargs):
         os.makedirs(dir_name, exist_ok=True)
         model.save_weights(os.path.join(dir_name, 'model'))
@@ -56,21 +61,22 @@ def bind_nsml(model):
         print('model loaded')
 
     def infer(root, phase):
-        return _infer(root, phase, model=model )
+        return _infer(root, phase, model=model,task=task)
 
     nsml.bind(save=save, load=load, infer=infer)
 
-def _infer(root, phase, model,):
+def _infer(root, phase, model, task):
     # root : csv file path
     # change soon
     print('_infer root - : ', root)
-    checkpoint_session = ['401','team_62/airush2/176']
+    
     #model, fixlen_feature_names_global, item = get_xDeepFM()
-    global fixlen_feature_names_global
-    model, fixlen_feature_names_global, item, image_feature_dict, id_to_artic = get_item()
-    bind_nsml(model)
+    #global fixlen_feature_names_global
+    model, fixlen_feature_names_global, item, image_feature_dict, id_to_artic = get_item(root)
+    #bind_nsml(model)
     #bind_nsml(model, [], args.task)
     print('--get item finished---')
+    checkpoint_session = ['401','team_62/airush2/176']
     nsml.load(checkpoint = str(checkpoint_session[0]), session = str(checkpoint_session[1]))
     print('-- model_load completed --')
 
@@ -90,29 +96,17 @@ def _infer(root, phase, model,):
     test_generator = data_generator_test(item)
 
     # 맞확
-    predicts = model.predict_generator(test_generator, workers = 8, use_multiprocessing = True)
+    predicts = model.predict_generator(test_generator, steps = len(item),workers = 4)
     print(f'y_pred shape : {predicts.shape}')
+    print(f'y_pred type : {type(predicts)}')
+    print(predicts)
+    predicts = predicts.reshape((len(item),))
+    pl = predicts.tolist()
+    print(pl[:50])
+    print(pl[-50:])
+    #print(predicts)
     return predicts
-    """
-    with torch.no_grad():
-        model.eval()
-        test_loader, dataset_sizes = get_data_loader(root, phase)
-        y_pred = []
-        print('start infer')
-        for i, data in enumerate(test_loader):
-            images, extracted_image_features, labels, flat_features = data
-
-            # images = images.cuda()
-            extracted_image_features = extracted_image_features.cuda()
-            flat_features = flat_features.cuda()
-            # labels = labels.cuda()
-
-            logits = model(extracted_image_features, flat_features)
-            y_pred += logits.cpu().squeeze().numpy().tolist()
-
-        print('end infer')
-    return y_pred
-    """
+    
 
 def data_generator_test(df, batch_size = 1):
     i = 0
@@ -215,8 +209,9 @@ def get_xDeepFM():
     model = xDeepFM(linear_feature_columns, dnn_feature_columns, task= 'binary')
     return model, fixlen_feature_names_global, item
 
-def get_item():
-    csv_file = os.path.join(DATASET_PATH, 'test', 'test_data', 'test_data')
+def get_item(root):
+    print('load')
+    csv_file = os.path.join(root, 'test', 'test_data', 'test_data')
     item = pd.read_csv(csv_file,
                 dtype={
                     'article_id': str,
@@ -224,7 +219,7 @@ def get_item():
                     'age_range': str,
                     'read_article_ids': str
                 }, sep='\t')
-      
+    print('loaded!!')
     sparse_features = ['article_id', 'hh','gender','age_range','len_bin']
     dense_features = ['image_feature']
     target = ['label']
@@ -256,8 +251,13 @@ def get_item():
         item[feat] = lbe.fit_transform(item[feat])
 
     # test set으로 구성해도 되고 item 을..
-
-    fixlen_feature_columns = [SparseFeat(feat, item[feat].nunique()) for feat in sparse_features]
+    fixlen_feature_columns = []
+    for feat in sparse_features:
+        if feat == 'article_id':
+            fixlen_feature_columns.append(SparseFeat(feat,1896))
+        else:
+            fixlen_feature_columns.append(SparseFeat(feat,item[feat].nunique()))
+    #fixlen_feature_columns = [SparseFeat(feat, item[feat].nunique()) for feat in sparse_features]
     fixlen_feature_columns += [DenseFeat(feat,len(image_feature_dict[artics[0]])) for feat in dense_features]
     
     print(fixlen_feature_columns)
@@ -284,7 +284,7 @@ def get_item():
     return model, fixlen_feature_names_global, item,image_feature_dict, id_to_artic
 
 
-def main(args):
+def main(args, local):
     
     if args.arch == 'xDeepFM' and args.mode == 'train':
         s = time.time()
@@ -356,8 +356,20 @@ def main(args):
         # 만들었던 파일들 저장하는 것도 하나 짜기, 매번 돌릴 수 없으니까
         print(time.time() - s ,'seconds')
 
+
     if use_nsml and args.mode == 'train':
-        bind_nsml(model)
+
+        bind_nsml(model,[], args.task)
+    
+    
+    if args.mode == 'test':
+        print('_infer root - : ', DATASET_PATH)
+        print('test')
+        model, fixlen_feature_names_global, item, image_feature_dict, id_to_artic = get_item(DATASET_PATH)
+        bind_nsml(model, [], args.task)
+        checkpoint_session = ['401','team_62/airush2/176']
+        nsml.load(checkpoint = str(checkpoint_session[0]), session = str(checkpoint_session[1])) 
+        print('successfully loaded')
 
     if (args.mode == 'train'):
         if args.dry_run:
@@ -370,6 +382,10 @@ def main(args):
         nsml.save('infer')
         print('end')
     print('end_main')
+
+    if args.pause:
+        nsml.paused(scope=local)
+        #print(root)
 
 
 if __name__ == '__main__':
@@ -406,4 +422,4 @@ if __name__ == '__main__':
     parser.add_argument('--dry_run', type=bool, default=False)
 
     config = parser.parse_args()
-    main(config)
+    main(config , local = locals())
