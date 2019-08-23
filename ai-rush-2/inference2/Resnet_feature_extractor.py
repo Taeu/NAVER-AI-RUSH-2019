@@ -18,22 +18,24 @@ if not nsml.IS_ON_NSML:
     DATASET_PATH = os.path.join('/home/kwpark_mk2/airush2_temp')
     DATASET_NAME = 'airush2_temp'
     print('use local gpu...!')
+    
     use_nsml = False
 else:
     DATASET_PATH = os.path.join(nsml.DATASET_PATH)
     print('start using nsml...!')
     print('DATASET_PATH: ', DATASET_PATH)
+    
     use_nsml = True
 
 from torch.autograd import Variable
 
-resnet50 = models.resnet50(pretrained=True)
+resnet50 = models.resnet(pretrained=True)
 modules = list(resnet50.children())[:-1]
 resnet50 = nn.Sequential(*modules)
 for p in resnet50.parameters():
     p.requires_grad = False
 
-
+import glob
 def main(args):
     model = resnet50
 
@@ -45,6 +47,8 @@ def main(args):
         print('load train data')
 
         file_list = os.listdir('./train/train_data/train_image')
+        file_list_a= glob.glob(f'{DATASET_PATH}/*')
+        print('file_list: ', file_list_a)
 
     else:
         print('load test data')
@@ -72,7 +76,7 @@ def main(args):
             print('current stack size :  ', len(y_pred_dict), round(len(y_pred_dict) / len(file_list), 2) * 100, '%')
 
     print('extraction is done')
-    dict_save_name = args.mode + '_image_features.pkl'
+    dict_save_name = args.mode + '_image_features_0.pkl'
 
     with open(dict_save_name, 'wb') as handle:
         pickle.dump(y_pred_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)

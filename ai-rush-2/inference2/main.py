@@ -78,7 +78,7 @@ def _infer(root, phase, model, task):
     #bind_nsml(model)
     #bind_nsml(model, [], args.task)
     print('--get item finished---')
-    checkpoint_session = ['10','team_62/airush2/241']
+    checkpoint_session = ['3','team_62/airush2/258']
     nsml.load(checkpoint = str(checkpoint_session[0]), session = str(checkpoint_session[1]))
     print('-- model_load completed --')
 
@@ -90,7 +90,10 @@ def _infer(root, phase, model, task):
     for i in range(len(data_1_article_idxs)):
         image_feature = image_feature_dict[id_to_artic[data_1_article_idxs[i]]]
         li.append(image_feature)
-
+    print('------------is same image picture? let me check---------------')
+    print('article_id : ','757518f4a3da')
+    print('article_if : ',image_feature_dict['757518f4a3da'])
+    print('--------------------------------------------------------------')
     
     item['image_feature'] = li
     li = []
@@ -145,72 +148,6 @@ class CustomModelCheckpoint(tf.keras.callbacks.Callback):
         print(f"epoch: {epoch}, train_acc: {logs['acc']}")
         nsml.save(str(epoch))
 
-def get_xDeepFM():
-
-    csv_file = os.path.join(DATASET_PATH, 'test', 'test_data', 'test_data')
-    item = pd.read_csv(csv_file,
-                dtype={
-                    'article_id': str,
-                    'hh': int, 'gender': str,
-                    'age_range': str,
-                    'read_article_ids': str
-                }, sep='\t')
-      
-    sparse_features = ['article_id', 'hh','gender','age_range','len_bin']
-    dense_features = ['image_feature']
-    target = ['label']
-    
-    
-    len_lis = []
-
-    read_article_ids_all = item['read_article_ids'].tolist()
-    for i in range(len(item)):
-        li = read_article_ids_all[i]
-        if type(li) == float:
-            len_lis.append(0)
-            continue
-        len_li = len(li.split(','))
-        len_lis.append(len_li)
-    
-    
-    item['len']  = len_lis
-    item['len_bin']  = pd.qcut(item['len'],6,duplicates='drop')
-
-    id_to_artic = dict()
-    artics = item['article_id'].tolist()
-    
-    with open(os.path.join(DATASET_PATH, 'train', 'train_data', 'train_image_features.pkl'), 'rb') as handle:
-        image_feature_dict = pickle.load(handle)
-
-    print('image_feaeture_dict loaded..')
-    for feat in sparse_features:
-        lbe = LabelEncoder()
-        item[feat] = lbe.fit_transform(item[feat])
-
-    # test set으로 구성해도 되고 item 을..
-
-    fixlen_feature_columns = [SparseFeat(feat, item[feat].nunique()) for feat in sparse_features]
-    fixlen_feature_columns += [DenseFeat(feat,len(image_feature_dict[artics[0]])) for feat in dense_features]
-    print(fixlen_feature_columns)
-    
-    
-    idx_artics_all = item['article_id'].tolist()
-    
-    for i in range(len(artics)):
-        idx_artic = idx_artics_all[i]
-        if idx_artic not in id_to_artic.keys():
-            id_to_artic[idx_artic] = artics[i]
-    
-    
-       
-    linear_feature_columns = fixlen_feature_columns
-    dnn_feature_columns = fixlen_feature_columns  
-    fixlen_feature_names = get_fixlen_feature_names(linear_feature_columns + dnn_feature_columns)
-    
-    fixlen_feature_names_global = fixlen_feature_names
-    model = xDeepFM(linear_feature_columns, dnn_feature_columns, task= 'binary')
-    return model, fixlen_feature_names_global, item
-
 def get_item(root):
     print('load')
     csv_file = os.path.join(root, 'test', 'test_data', 'test_data')
@@ -240,25 +177,25 @@ def get_item(root):
     
     item['len']  = len_lis
     item['len_bin']  = pd.qcut(item['len'],6,duplicates='drop')
-
+    print('----- before onehot encoding -----')
+    print(item.head(10))
     id_to_artic = dict()
     artics = item['article_id'].tolist()
     
-    with open(os.path.join(DATASET_PATH, 'test', 'test_data', 'test_image_features.pkl'), 'rb') as handle:
+    with open(os.path.join(DATASET_PATH, 'test', 'test_data', 'test_image_features_50.pkl'), 'rb') as handle:
         image_feature_dict = pickle.load(handle)
 
     print('image_feaeture_dict loaded..')
     for feat in sparse_features:
         lbe = LabelEncoder()
         item[feat] = lbe.fit_transform(item[feat])
-
+    print('----- after onehot encoding -----')
+    print(item.head(10))
     # test set으로 구성해도 되고 item 을..
     fixlen_feature_columns = []
     for feat in sparse_features:
-        if feat == 'article_id':
-            fixlen_feature_columns.append(SparseFeat(feat,1896))
-        else:
-            fixlen_feature_columns.append(SparseFeat(feat,item[feat].nunique()))
+
+        fixlen_feature_columns.append(SparseFeat(feat,item[feat].nunique()))
     #fixlen_feature_columns = [SparseFeat(feat, item[feat].nunique()) for feat in sparse_features]
     fixlen_feature_columns += [DenseFeat(feat,len(image_feature_dict[artics[0]])) for feat in dense_features]
     
@@ -285,10 +222,12 @@ def get_item(root):
 
     return model, fixlen_feature_names_global, item,image_feature_dict, id_to_artic
 
-
+import glob
 def main(args, local):
     
     if args.arch == 'xDeepFM' and args.mode == 'train':
+
+
         s = time.time()
         csv_file = os.path.join(DATASET_PATH, 'train', 'train_data', 'train_data')
         item = pd.read_csv(csv_file,
@@ -367,13 +306,19 @@ def main(args, local):
     if args.mode == 'test':
         print('_infer root - : ', DATASET_PATH)
         print('test')
+        print('DATASET_PATH: ', DATASET_PATH)
+        file_list= glob.glob(f'{DATASET_PATH}/test/test_data/*')
+        print('file_list: ',file_list)
         model, fixlen_feature_names_global, item, image_feature_dict, id_to_artic = get_item(DATASET_PATH)
         bind_nsml(model, [], args.task)
-        checkpoint_session = ['401','team_62/airush2/176']
+        checkpoint_session = ['3','team_62/airush2/258']
         nsml.load(checkpoint = str(checkpoint_session[0]), session = str(checkpoint_session[1])) 
         print('successfully loaded')
 
     if (args.mode == 'train'):
+        print('DATASET_PATH: ', DATASET_PATH)
+        file_list= glob.glob(f'{DATASET_PATH}/train/train_data/*')
+        print('file_list :',file_list)
         if args.dry_run:
             print('start dry-running...!')
             args.num_epochs = 1
