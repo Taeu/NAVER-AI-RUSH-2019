@@ -28,7 +28,10 @@ else:
     print('DATASET_PATH: ', DATASET_PATH)
 
 csv_file = os.path.join(DATASET_PATH, 'train', 'train_data', 'train_data')
+article_file = os.path.join(DATASET_PATH, 'train', 
+                            'train_data', 'train_data_article.tsv')
 
+article_df = pd.read_csv(article_file, sep='\t')
 
 item = pd.read_csv(csv_file,
                     dtype={
@@ -38,20 +41,28 @@ item = pd.read_csv(csv_file,
                         'read_article_ids': str
                     }, sep='\t')
 
-label_data_path = os.path.join(DATASET_PATH, 'train',
-                                os.path.basename(os.path.normpath(csv_file)).split('_')[0] + '_label')
-label = pd.read_csv(label_data_path,
-                    dtype={'label': int},
-                    sep='\t')
+item_article_list = item['article_id'].tolist()
+article_id_list = article_df['article_id'].tolist()
+
+inter_set = set(item_article_list) & set(article_id_list)
+print(f'item set: {len(set(item_article_list))}')
+print(f'article set: {len(set(article_id_list))}')
+print(f'inter_set len: {len(inter_set)}')
+
+# label_data_path = os.path.join(DATASET_PATH, 'train',
+#                                 os.path.basename(os.path.normpath(csv_file)).split('_')[0] + '_label')
+# label = pd.read_csv(label_data_path,
+#                     dtype={'label': int},
+#                     sep='\t')
 
 
-with open(os.path.join(DATASET_PATH, 'train', 'train_data', 'train_image_features.pkl'), 'rb') as handle:
-    image_feature_dict = pickle.load(handle)
+# with open(os.path.join(DATASET_PATH, 'train', 'train_data', 'train_image_features.pkl'), 'rb') as handle:
+#     image_feature_dict = pickle.load(handle)
 
-article_ids = item['article_id'].tolist()[:100]
+# article_ids = item['article_id'].tolist()[:100]
 
-for article_id in article_ids[:50]:
-    print(article_id)
-    for elm in image_feature_dict[article_id]:
-        print(elm)
-    print('='*50)
+# for article_id in article_ids[:50]:
+#     print(article_id)
+#     for elm in image_feature_dict[article_id]:
+#         print(elm)
+#     print('='*50)
