@@ -57,17 +57,19 @@ total_cnt_list = total_cnt_list[:-1]
 
 
 def gini(actual, pred, cmpcol = 0, sortcol = 1):
+    eps = 1e-5
     assert( len(actual) == len(pred) )
     all = np.asarray(np.c_[ actual, pred, np.arange(len(actual)) ], dtype=np.float)
     all = all[ np.lexsort((all[:,2], -1*all[:,1])) ]
     totalLosses = all[:,0].sum()
-    giniSum = all[:,0].cumsum().sum() / totalLosses
+    giniSum = all[:,0].cumsum().sum() / (totalLosses + eps)
     
     giniSum -= (len(actual) + 1) / 2.
     return giniSum / len(actual)
 
 def gini_normalized(a, p):
-    return gini(a, p) / gini(a, a)
+    eps = 1e-5
+    return gini(a, p) / (gini(a, a) + eps)
 
 def gini_xgb(preds, dtrain):
     labels = dtrain.get_label()
@@ -319,6 +321,8 @@ def main(args):
         file_list2 = os.listdir(DATASET_PATH+'/train')
         file_list3 = os.listdir(DATASET_PATH+'/train/train_data')
 
+
+        """
         resnet_feature_extractor(args.mode)
 
         # One hot Encoding
@@ -327,7 +331,7 @@ def main(args):
 
         print('check artic feature')
         print(f"757518f4a3da : {image_feature_dict['757518f4a3da']}")
-    
+        """
 
         
         # print check all
@@ -336,7 +340,9 @@ def main(args):
         item.hh = item.hh.astype('object')
 
         # select feature to train
-        cols = ['article_id', 'hh', 'gender', 'age_range', 'label','len' ,'rcl', 'rcp', 'tcl']
+        #cols = ['article_id', 'hh', 'gender', 'age_range', 'label','len' ,'rcl', 'rcp', 'tcl']
+        cols = ['hh', 'gender', 'age_range', 'label','len' ,'rcl', 'rcp', 'tcl']
+       
         item = item[cols]
         item.info()
 
@@ -351,11 +357,10 @@ def main(args):
 
     s = time.time()
     print('---------train start---------')
-    y = item['label']
-    x = item.drop(['label'],axis = 1)
-    one_hot_encoded_X = pd.get_dummies(x)
-    print(one_hot_encoded_X.columns.tolist())
-    print("# of columns after one-hot encoding: {0}".format(len(one_hot_encoded_X.columns)))
+    item_neg = item[item['label'] == 0]
+    item_pos = item[item['label'] == 1]
+
+   
    
     params = {
     'colsample_bynode': 0.8,
@@ -378,23 +383,46 @@ def main(args):
         # metric : 
         kf = KFold(n_splits=5, random_state = 42, shuffle =True)
         cvi = 0
-        for train_index, test_index in kf.split(one_hot_encoded_X, y):
+        for train_index, test_index in kf.split(item_neg):
+            item_train = item_neg.iloc[train_index]
+            item_test = item_neg.iloc[test_index]
+            print(f'len(item_train) : {len(item_train)}')
+            print(f'len(item_test) : {len(item_test)}')
+            batch_size = 100000
+            dn_1 = item_train.sample(n = 1*len(item_pos),random_state = 42)
+            dn_1.reset_index()
+
+            data_1 = pd.concat([dn_1,item_pos]).sample(frac=1,random_state =42).reset_index()
+            cols = ['hh', 'gender', 'age_range', 'label','len' ,'rcl', 'rcp', 'tcl']
+            data_1 = data_1[cols]
+            a = pd.DataFrame({'hh' : ['unknown'], 'gender': ['unknown'],'age_range' : ['unknown'] ,'label' : [0], 'len' : [0],'rcl':[0],'rcp':[0],'tcl':[0]},index=[len(data_1)])
+            data_1 = data_1.append(a)
+            data_1.info()
+            print(f'len data_1 {len(data_1)}')
+
+            y = data_1['label']
+            x = data_1.drop(['label'],axis = 1)
+            one_hot_encoded_X = pd.get_dummies(x)
+            print(one_hot_encoded_X.columns.tolist())
+            print("# of columns after one-hot encoding: {0}".format(len(one_hot_encoded_X.columns)))
+            print(f"# of one_hot_encoded_X : {len(one_hot_encoded_X)}")
+            
             
             cvi += 1
             print(cvi,' cv')
-            train_x = one_hot_encoded_X.iloc[train_index]
-            train_y = y.iloc[train_index]
-            valid_x = one_hot_encoded_X.iloc[test_index]
-            valid_y = y.iloc[test_index]
-            
-            print(train_x.shape)
-            print(valid_x.shape)
+            train_x = one_hot_encoded_X
+            train_y = y
+            print(f'len train_x : {len(train_x)}')
+            valid_x = one_hot_encoded_X[:batch_size]
+            valid_y = y[:batch_size]
+            print(f'len valid_x : {len(valid_x)}') 
+           
 
 
             xgb_model = None
             # good example batch training : https://github.com/dmlc/xgboost/issues/2970
-            batch_size = 100000
-            d_valid = xgb.DMatrix(valid_x[0:batch_size], valid_y[0:batch_size])
+           
+            d_valid = xgb.DMatrix(valid_x, valid_y)
             for k in range(0, (train_x.shape[0] // batch_size)*batch_size, batch_size) :
                 d_train = xgb.DMatrix(train_x[k:k+batch_size], train_y[k:k+batch_size])
                 
@@ -409,7 +437,9 @@ def main(args):
                     bind_nsml(xgb_model, [], args.task)
                     print('bind model')
                 nsml.save(str(cvi)+'_'+str(k))
-            
+                d_test = xgb.DMatrix(one_hot_encoded_X[batch_size:2*batch_size])
+                b = xgb_model.predict(d_test)
+                print(b[:100])
             """
             xgb_pred = xgb_model.predict(d_test)
             xgb_preds.append(list(xgb_pred))

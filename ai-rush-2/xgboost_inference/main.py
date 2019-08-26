@@ -101,7 +101,7 @@ from nsml import DATASET_PATH, DATASET_NAME
 def bind_nsml(model, optimizer, task):
     def save(dir_name, *args, **kwargs):
         os.makedirs(dir_name, exist_ok=True)
-        checkpoint_session = ['1_100000','team_62/airush2/582']
+        checkpoint_session = ['1_300000','team_62/airush2/621']
         nsml.load(checkpoint = str(checkpoint_session[0]), session = str(checkpoint_session[1]))
         model.save_model(os.path.join(dir_name,'model'))
         print('model saved!')
@@ -184,18 +184,20 @@ def _infer(root, phase, model, task):
     item['tcl'] = tcl
 
 
-    cols = ['article_id', 'hh', 'gender', 'age_range','len' ,'rcl', 'rcp', 'tcl']
+    cols = ['hh', 'gender', 'age_range','len' ,'rcl', 'rcp', 'tcl']
     item = item[cols]
     item.info()
 
     # article_id
-    item.article_id = item.article_id.apply(lambda x : 'unknown' if x not in lll else x)
+    #item.article_id = item.article_id.apply(lambda x : 'unknown' if x not in lll else x)
     # hh
     item.hh = item.hh.astype('object')
-
+    a = pd.DataFrame({'hh' : ['unknown'], 'gender': ['unknown'],'age_range' : ['unknown'] , 'len' : [28],'rcl':[4],'rcp':[0.04],'tcl':[20]},index=[len(item)])
+    item = item.append(a)
+    item.info()
     print('after preprocess')
     item.info()
-    
+    print('len_item',len(item))
     """
     resnet_feature_extractor(phase)
     # One hot Encoding
@@ -227,13 +229,30 @@ def _infer(root, phase, model, task):
         xgb_pred = model.predict(d_test)
         predict_list.append(xgb_pred.tolist())
     """
+    one_hot_encoded_X = one_hot_encoded_X[:-1]
+    print(one_hot_encoded_X.shape)
     d_test = xgb.DMatrix(one_hot_encoded_X)
-    checkpoint_session = [str(1)+'_2000000','team_62/airush2/582']
+    checkpoint_session = ['1_300000','team_62/airush2/621']
     nsml.load(checkpoint = str(checkpoint_session[0]), session = str(checkpoint_session[1]))
+    print(model.get_score())
     print('load completed')
     xgb_pred = model.predict(d_test)
-    print(xgb_pred)
-    return xgb_pred.tolist()
+    print(xgb_pred[:100])
+    print(xgb_pred[100:200])
+    print(xgb_pred[200:300])
+    print(xgb_pred[300:400])
+    print(xgb_pred[400:500])
+    print(type(xgb_pred))
+    print(len(xgb_pred))
+    xlist = xgb_pred.tolist()
+    cnt = 0
+    for i in range(len(xlist)):
+        xlist[i] = xlist[i] * 0.85
+        if (xlist[i] > 0.5):
+            cnt+=1
+    print(cnt)
+    print(np.mean(xlist))
+    return xlist
     #print(f'finished data_1_image_feature : {time.time() - s} sec')
     
     
