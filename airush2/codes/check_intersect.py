@@ -17,7 +17,6 @@ from utils import get_transforms
 from utils import default_loader
 
 from tqdm import tqdm
-from imblearn.under_sampling import RandomUnderSampler
 
 if not nsml.IS_ON_NSML:
     # if you want to run it on your local machine, then put your path here
@@ -42,37 +41,19 @@ item = pd.read_csv(csv_file,
                         'read_article_ids': str
                     }, sep='\t')
 
-item = item.fillna('')
+item_article_list = item['article_id'].tolist()
+article_id_list = article_df['article_id'].tolist()
 
-label_data_path = os.path.join(DATASET_PATH, 'train',
-                                os.path.basename(os.path.normpath(csv_file)).split('_')[0] + '_label')
-label = pd.read_csv(label_data_path,
-                    dtype={'label': int},
-                    sep='\t')
+inter_set = set(item_article_list) & set(article_id_list)
+print(f'item set: {len(set(item_article_list))}')
+print(f'article set: {len(set(article_id_list))}')
+print(f'inter_set len: {len(inter_set)}')
 
-X = item.values
-y = label['label'].values
-
-train_x, train_y = RandomUnderSampler(random_state=42).fit_sample(X, y)
-
-print(train_y.shape)
-print(np.unique(train_y, return_counts=True))
-
-# def create_readlist(row):
-#     if row:
-#         return row.split(',')
-#     else:
-#         return []
-
-# item = item.fillna('')  # fillna
-# item['read_article_list'] = item['read_article_ids'].apply(create_readlist)
-# item['read_len'] = item['read_article_list'].apply(len)
-
-# print(item['read_len'].describe())
-
-
-
-# print('label.value_counts(): ', label['label'].value_counts())
+# label_data_path = os.path.join(DATASET_PATH, 'train',
+#                                 os.path.basename(os.path.normpath(csv_file)).split('_')[0] + '_label')
+# label = pd.read_csv(label_data_path,
+#                     dtype={'label': int},
+#                     sep='\t')
 
 
 # with open(os.path.join(DATASET_PATH, 'train', 'train_data', 'train_image_features.pkl'), 'rb') as handle:
