@@ -232,6 +232,7 @@ def _infer(root, phase, model, task):
     one_hot_encoded_X = one_hot_encoded_X[:-1]
     print(one_hot_encoded_X.shape)
     d_test = xgb.DMatrix(one_hot_encoded_X)
+    
     checkpoint_session = ['1_300000','team_62/airush2/621']
     nsml.load(checkpoint = str(checkpoint_session[0]), session = str(checkpoint_session[1]))
     print(model.get_score())
