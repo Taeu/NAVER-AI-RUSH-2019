@@ -1,0 +1,31 @@
+{
+	"folders": [
+		{
+			"path": "/Users/yukyung/Desktop/airushmaster/airush2_1"
+		},
+		{
+			"path": "/Users/yukyung/Desktop/airushmaster/k_fold"
+		},
+		{
+			"path": "/Users/yukyung/Desktop/airushmaster/airush2"
+		},
+		{
+			"path": "/Users/yukyung/Desktop/airushmaster/xgboost/xgboost"
+		},
+		{
+			"path": "/Users/yukyung/Desktop/airushmaster/xgboost/xgboost_inference"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "/Users/yukyung/Desktop/airushmaster/lightgbm_inference"
+		},
+		{
+			"path": "/Users/yukyung/Desktop/airushmaster/dataanal"
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true
+	}
+}
