@@ -6,8 +6,8 @@ ___
 
 - our solution : efficientNet + oct vNet Ensemble
 
-	- 17 th / 100 teams 
-	- the period actually participate : Aug 6 to  Aug 13 (about 7 days)
+- 17 th / 100 teams 
+- the period actually participate : Aug 6 to  Aug 13 (about 7 days)
 
 
 
