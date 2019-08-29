@@ -1,4 +1,7 @@
 # NAVER-AI-RUSH
+___
+
+- **12 th** (total score)
 
 **NAVER-AI-RUSH-1 / Image Classification**
 
@@ -6,7 +9,7 @@ ___
 
 - our solution : efficientNet + oct vNet Ensemble
 
-- 17 th / 100 teams 
+- 17 th / 100 teams (first round)
 - the period actually participate : Aug 6 to  Aug 13 (about 7 days)
 
 
@@ -19,7 +22,7 @@ ___
 
 - our solution : A single CAT model, (only use 7 different features : read_len, read_cnt, total_cnt, read_prob, gender, age_range, hh)
 
-- 11 th / 30 teams (final)
+- 11 th / 30 teams (final round)
 - the period actually participate : Aug 20 to Aug 28 (about 8 days)
 - tried : xDeepFM (feature, article_id, read_len, gender, age_range, hh, image_feature) - didn't go well..
 - tried : Embedding DNN network - didn't see it carefully..
