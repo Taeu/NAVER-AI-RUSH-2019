@@ -30,4 +30,5 @@ ___
 - Things we couldn't do because of not enough time :
   - submit for image feature, category feature, means, std of numeric cols that we made at training
   - Ensemble different models(xgboost, lgbm and CAT).  even couldn't ensemble of result of k-fold of just single CAT, other model, respectively.
+  - train item2vec of read articles id (history).. ( i think if we did this and make article_id feature, then we could get very good feature for the model... we just thought but didn't try even though it's not that difficult)
 
